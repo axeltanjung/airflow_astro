@@ -15,8 +15,20 @@ def _transform(ti):
     my_character["gender"] = "female" if response["gender"] == "male" else "male"
     ti.xcom_push("character_info", my_character)
 
+def _transform2(ti):
+    response = requests.get(f'https://swapi.dev/api/people/2').json()
+    print(response)
+
+    my_character = {}
+    my_character["height"] = int(response["height"]) - 50
+    my_character["mass"] = int(response["height"]) - 20
+    my_character["hair_color"] = "burgundy" if response["hair_color"] == "blond" else "brown"
+    my_character["eye_color"] = "green" if response["eye_color"] == "blue" else "brown"
+    my_character["gender"] = "male" if response["gender"] == "male" else "female"
+    ti.xcom_push(key = 'character_info', value = my_character)
+
 def _load(ti):
-    print(ti.xcom_pull(key = "character_info", task_ids = "_transform"))
+    print(ti.xcom_pull(key = "character_info", task_ids = ["_transform", "_transform2"]))
 
 with DAG(
     'xcoms_demo_1',
@@ -33,5 +45,10 @@ with DAG(
         task_id = "_load",
         python_callable = _load
     )
+        
+    t3 = PythonOperator(
+        task_id = "_transform2",
+        python_callable = _transform2
+    )
 
-    t1 >> t2
+    [t1, t3] >> t2
